@@ -7,18 +7,29 @@ import (
 	"net/http"
 )
 
-func main() {
-	resp, err := http.Get("https://samuinteractive.com")
+func ParseHtml(url string) []byte {
+	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making GET request: %v", err)
 	}
-	defer resp.Body.Close() // Close the response body when the function exits
+	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalf("Error reading response body: %v", err)
 	}
 
-	fmt.Printf("Status: %s\n", resp.Status)
-	fmt.Printf("Body:\n%s\n", body)
+	return body
 }
+
+func main() {
+	pageBody := ParseHtml("https://samuinteractive.com")
+	fmt.Println(string(pageBody))
+}
+
+// Add page to queue
+// Get page body
+// Parse page body for links
+// Add links to queue
+// Add page to visited
+// Repeat until no more pages to visit
