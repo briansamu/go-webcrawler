@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -131,19 +132,47 @@ func hashUrl(url string) uint64 {
 	return h.Sum64()
 }
 
-func getHref(t html.Token) (ok bool, href string) {
+func getHref(t html.Token, baseURL string) (ok bool, href string) {
 	for _, a := range t.Attr {
 		if a.Key == "href" {
-			if len(a.Val) == 0 || !strings.HasPrefix(a.Val, "http") {
-				ok = false
-				href = a.Val
-				return ok, href
+			if len(a.Val) == 0 {
+				return false, ""
 			}
-			href = a.Val
-			ok = true
+
+			// Skip fragments (same page anchors)
+			if strings.HasPrefix(a.Val, "#") {
+				return false, ""
+			}
+
+			// Skip javascript: and mailto: links
+			if strings.HasPrefix(a.Val, "javascript:") || strings.HasPrefix(a.Val, "mailto:") {
+				return false, ""
+			}
+
+			// Parse the base URL
+			base, err := url.Parse(baseURL)
+			if err != nil {
+				return false, ""
+			}
+
+			// Parse the href (could be relative or absolute)
+			ref, err := url.Parse(a.Val)
+			if err != nil {
+				return false, ""
+			}
+
+			// Resolve relative URL against base URL
+			resolved := base.ResolveReference(ref)
+
+			// Only crawl HTTP/HTTPS URLs
+			if resolved.Scheme != "http" && resolved.Scheme != "https" {
+				return false, ""
+			}
+
+			return true, resolved.String()
 		}
 	}
-	return ok, href
+	return false, ""
 }
 
 func fetchPage(url string, c chan []byte) {
@@ -158,7 +187,7 @@ func fetchPage(url string, c chan []byte) {
 	err := chromedp.Run(ctx,
 		chromedp.Navigate(url),
 		chromedp.WaitVisible(`body`, chromedp.ByQuery),
-		chromedp.Sleep(1500*time.Millisecond), // Wait for hydration
+		// chromedp.Sleep(1500*time.Millisecond), // Wait for hydration
 		chromedp.OuterHTML(`html`, &content, chromedp.ByQuery),
 	)
 
@@ -201,7 +230,7 @@ func parsePage(currUrl string, content []byte, q *Queue, crawled *CrawledSet, db
 				fmt.Printf("Count: %d | %s -> %s\n", crawled.size(), currUrl, title)
 			}
 			if t.Data == "a" {
-				ok, href := getHref(t)
+				ok, href := getHref(t, currUrl)
 				if !ok {
 					continue
 				}
