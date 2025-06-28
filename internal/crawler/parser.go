@@ -21,7 +21,7 @@ func ParsePage(currUrl string, content []byte, q *queue.Queue, crawled *queue.Cr
 	page := models.Page{Url: currUrl, Title: "", Content: ""}
 
 	for {
-		if z.Next() == html.ErrorToken || tokenCount > 500 {
+		if z.Next() == html.ErrorToken || tokenCount > 25000 {
 			if crawled.Size() < 1000 {
 				db.InsertPage(page)
 			}
@@ -54,7 +54,7 @@ func ParsePage(currUrl string, content []byte, q *queue.Queue, crawled *queue.Cr
 				}
 			}
 		}
-		if body && t.Type == html.TextToken && pageContentLength < 500 {
+		if body && t.Type == html.TextToken && pageContentLength < 15000 {
 			page.Content += strings.TrimSpace(t.Data)
 			pageContentLength += len(t.Data)
 		}
