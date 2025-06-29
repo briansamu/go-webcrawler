@@ -7,13 +7,14 @@ import (
 
 	"webcrawler/internal/models"
 	"webcrawler/internal/queue"
+	"webcrawler/internal/robots"
 	"webcrawler/internal/storage"
 	"webcrawler/internal/utils"
 
 	"golang.org/x/net/html"
 )
 
-func ParsePage(currUrl string, content []byte, q *queue.Queue, crawled *queue.CrawledSet, db *storage.MongoDB) {
+func ParsePage(currUrl string, content []byte, q *queue.Queue, crawled *queue.CrawledSet, db *storage.MongoDB, robotsChecker *robots.RobotsChecker) {
 	z := html.NewTokenizer(bytes.NewReader(content))
 	tokenCount := 0
 	pageContentLength := 0
@@ -49,8 +50,13 @@ func ParsePage(currUrl string, content []byte, q *queue.Queue, crawled *queue.Cr
 				}
 				if crawled.Contains(href) {
 					continue
-				} else {
+				}
+
+				// Check robots.txt before adding to queue
+				if allowed, _ := robotsChecker.IsAllowed(href); allowed {
 					q.Enqueue(href, crawled)
+				} else {
+					fmt.Printf("Robots.txt disallows URL: %s\n", href)
 				}
 			}
 		}

@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	DBAccess bool
-	MongoURI string
-	SeedURL  string
+	DBAccess  bool
+	MongoURI  string
+	SeedURL   string
+	UserAgent string
 }
 
 func Load() *Config {
@@ -21,9 +22,16 @@ func Load() *Config {
 		dbAccess = false
 	}
 
+	userAgent := os.Getenv("USER_AGENT")
+	if userAgent == "" {
+		fmt.Println("Error: USER_AGENT is not set")
+		os.Exit(1)
+	}
+
 	return &Config{
-		DBAccess: dbAccess,
-		MongoURI: os.Getenv("MONGO_URI"),
-		SeedURL:  os.Getenv("SEED_URL"),
+		DBAccess:  dbAccess,
+		MongoURI:  os.Getenv("MONGO_URI"),
+		SeedURL:   os.Getenv("SEED_URL"),
+		UserAgent: userAgent,
 	}
 }

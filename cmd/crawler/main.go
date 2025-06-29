@@ -7,6 +7,7 @@ import (
 	"webcrawler/internal/config"
 	"webcrawler/internal/crawler"
 	"webcrawler/internal/queue"
+	"webcrawler/internal/robots"
 	"webcrawler/internal/stats"
 	"webcrawler/internal/storage"
 )
@@ -19,6 +20,7 @@ func main() {
 
 	crawled := queue.NewCrawledSet()
 	q := queue.NewQueue()
+	robotsChecker := robots.NewRobotsChecker(cfg.UserAgent)
 
 	ticker := time.NewTicker(1 * time.Minute)
 	done := make(chan bool)
@@ -41,21 +43,42 @@ func main() {
 	crawled.Add(url)
 	c := make(chan []byte)
 
-	go crawler.FetchPage(url, c)
+	// Check robots.txt before fetching
+	if allowed, crawlDelay := robotsChecker.IsAllowed(url); allowed {
+		if crawlDelay > 0 {
+			time.Sleep(crawlDelay)
+		}
+		go crawler.FetchPage(url, c)
 
-	content := <-c
-	crawler.ParsePage(url, content, q, crawled, db)
+		content := <-c
+		crawler.ParsePage(url, content, q, crawled, db, robotsChecker)
+	} else {
+		fmt.Printf("Robots.txt disallows crawling: %s\n", url)
+		c <- []byte("") // Send empty content to continue flow
+	}
 
 	for q.Size() > 0 && crawled.Size() < 5000 {
 		url := q.Dequeue()
 		crawled.Add(url)
+
+		// Check robots.txt before fetching
+		allowed, crawlDelay := robotsChecker.IsAllowed(url)
+		if !allowed {
+			fmt.Printf("Robots.txt disallows crawling: %s\n", url)
+			continue
+		}
+
+		// Respect crawl delay
+		if crawlDelay > 0 {
+			time.Sleep(crawlDelay)
+		}
 
 		go crawler.FetchPage(url, c)
 		content := <-c
 		if len(content) == 0 {
 			continue
 		}
-		go crawler.ParsePage(url, content, q, crawled, db)
+		go crawler.ParsePage(url, content, q, crawled, db, robotsChecker)
 	}
 
 	ticker.Stop()
