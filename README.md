@@ -138,14 +138,6 @@ The crawler tracks and displays:
 - Total URLs queued vs. crawled
 - Real-time progress updates
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
 ## Acknowledgments
 
 This project builds upon the excellent foundation laid by [@afazio1](https://github.com/afazio1) in their [original web-crawler project](https://github.com/afazio1/web-crawler). The core crawling concepts and MongoDB integration patterns were inspired by their work.
