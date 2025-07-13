@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"webcrawler/internal/api"
 	"webcrawler/internal/config"
 	"webcrawler/internal/crawler"
 	"webcrawler/internal/queue"
@@ -21,12 +22,16 @@ func main() {
 	crawled := queue.NewCrawledSet()
 	q := queue.NewQueue()
 	robotsChecker := robots.NewRobotsChecker(cfg.UserAgent)
+	crawlerStats := stats.NewCrawlerStats()
+
+	// Start API server in goroutine
+	apiServer := api.NewAPIServer(db, crawlerStats, crawled, q)
+	go apiServer.Start("8080")
 
 	ticker := time.NewTicker(1 * time.Minute)
 	done := make(chan bool)
-	crawlerStats := stats.NewCrawlerStats()
 
-	// Tick every minute
+	// Tick every minute and broadcast stats
 	go func() {
 		for {
 			select {
@@ -34,6 +39,20 @@ func main() {
 				return
 			case t := <-ticker.C:
 				crawlerStats.Update(crawled, q, t)
+				apiServer.BroadcastStats()
+			}
+		}
+	}()
+
+	// Also broadcast stats every 5 seconds for more responsive UI
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				apiServer.BroadcastStats()
 			}
 		}
 	}()
@@ -78,7 +97,7 @@ func main() {
 		if len(content) == 0 {
 			continue
 		}
-		go crawler.ParsePage(url, content, q, crawled, db, robotsChecker)
+		crawler.ParsePage(url, content, q, crawled, db, robotsChecker)
 	}
 
 	ticker.Stop()

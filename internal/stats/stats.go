@@ -32,3 +32,16 @@ func (stats *CrawlerStats) Print() {
 	fmt.Println("Crawl to Queued Ratio per minute:")
 	fmt.Println(stats.crawledRatioPerMinute)
 }
+
+func (stats *CrawlerStats) GetStartTime() time.Time {
+	return stats.startTime
+}
+
+func (stats *CrawlerStats) GetCurrentStats() map[string]interface{} {
+	return map[string]interface{}{
+		"startTime":             stats.startTime,
+		"pagesPerMinute":        stats.pagesPerMinute,
+		"crawledRatioPerMinute": stats.crawledRatioPerMinute,
+		"uptime":                time.Since(stats.startTime),
+	}
+}

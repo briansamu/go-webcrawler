@@ -1,0 +1,368 @@
+<!-- web/static/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Crawler Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2563eb;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .search-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .search-button {
+            padding: 12px 24px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .search-button:hover {
+            background: #1d4ed8;
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .result-url {
+            color: #059669;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+
+        .result-snippet {
+            color: #666;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .score-badge {
+            display: inline-block;
+            background: #f0f9ff;
+            color: #0369a1;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+            margin-left: 10px;
+            border: 1px solid #e0f2fe;
+        }
+
+        .score-high {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #bbf7d0;
+        }
+
+        .score-medium {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fde68a;
+        }
+
+        .score-low {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .page-btn {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .page-btn.active {
+            background: #2563eb;
+            color: white;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Web Crawler Dashboard <span class="status-indicator" id="statusIndicator"></span></h1>
+            <p>Real-time crawling statistics and search interface</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalCrawled">0</div>
+                <div class="stat-label">Pages Crawled</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="queueSize">0</div>
+                <div class="stat-label">Queue Size</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="crawlRate">0</div>
+                <div class="stat-label">Pages/Min</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="uptime">0</div>
+                <div class="stat-label">Uptime (min)</div>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <h2>Search Crawled Pages</h2>
+            <div class="search-bar">
+                <input type="text" class="search-input" id="searchInput"
+                    placeholder="Search pages by title, content, or URL...">
+                <button class="search-button" onclick="searchPages()">Search</button>
+            </div>
+            <div id="searchResults"></div>
+        </div>
+
+        <div class="results-section">
+            <h2>Recent Pages</h2>
+            <div id="recentPages"></div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let currentPage = 1;
+
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8080/ws/stats');
+
+            ws.onmessage = function (event) {
+                const stats = JSON.parse(event.data);
+                updateStats(stats);
+            };
+
+            ws.onclose = function () {
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function updateStats(stats) {
+            document.getElementById('totalCrawled').textContent = stats.totalCrawled;
+            document.getElementById('queueSize').textContent = stats.queueSize;
+            document.getElementById('crawlRate').textContent = stats.crawlRate.toFixed(1);
+            document.getElementById('uptime').textContent = stats.uptimeMinutes.toFixed(1);
+        }
+
+        function searchPages(page = 1) {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+
+            console.log('Searching for:', query);
+
+            // Show loading indicator
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '<p>Searching...</p>';
+
+            fetch(`/api/search?q=${encodeURIComponent(query)}&page=${page}`)
+                .then(response => {
+                    console.log('Search response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Search results:', data);
+                    displaySearchResults(data);
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    alert('Search failed. Please try again.');
+                });
+        }
+
+        function displaySearchResults(data) {
+            const resultsDiv = document.getElementById('searchResults');
+
+            if (!data || !data.pages) {
+                resultsDiv.innerHTML = '<p>Error: Invalid search response.</p>';
+                return;
+            }
+
+            if (data.pages.length === 0) {
+                resultsDiv.innerHTML = '<p>No results found.</p>';
+                return;
+            }
+
+            let html = `<p>Found ${data.totalCount} results</p>`;
+            data.pages.forEach(page => {
+                const score = page.score || 0;
+                const scoreClass = score > 15 ? 'score-high' : score > 5 ? 'score-medium' : 'score-low';
+
+                html += `
+                    <div class="result-item">
+                        <div class="result-title">
+                            ${page.title || 'Untitled'}
+                            <span class="score-badge ${scoreClass}">Score: ${score.toFixed(1)}</span>
+                        </div>
+                        <a href="${page.url}" target="_blank" class="result-url">${page.url}</a>
+                        <div class="result-snippet">${(page.content || '').substring(0, 200)}...</div>
+                    </div>
+                `;
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function loadRecentPages() {
+            console.log('Loading recent pages...');
+
+            fetch('/api/pages?page=1&limit=10')
+                .then(response => {
+                    console.log('Recent pages response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Recent pages data:', data);
+                    displayRecentPages(data);
+                })
+                .catch(error => {
+                    console.error('Error loading recent pages:', error);
+                });
+        }
+
+        function displayRecentPages(data) {
+            const pagesDiv = document.getElementById('recentPages');
+
+            let html = '';
+            data.pages.forEach(page => {
+                html += `
+                    <div class="result-item">
+                        <div class="result-title">${page.title || 'Untitled'}</div>
+                        <a href="${page.url}" target="_blank" class="result-url">${page.url}</a>
+                        <div class="result-snippet">${(page.content || '').substring(0, 200)}...</div>
+                    </div>
+                `;
+            });
+
+            pagesDiv.innerHTML = html;
+        }
+
+        // Enter key search
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                searchPages();
+            }
+        });
+
+        // Initialize
+        connectWebSocket();
+        loadRecentPages();
+
+        // Refresh recent pages every 30 seconds
+        setInterval(loadRecentPages, 30000);
+    </script>
+</body>
+
+</html>

@@ -17,7 +17,18 @@ type Config struct {
 func Load() *Config {
 	dbAccess := true
 
-	if godotenv.Load() != nil {
+	// Try multiple locations for .env file
+	envPaths := []string{".env", "../.env", "../../.env"}
+	var envLoaded bool
+
+	for _, path := range envPaths {
+		if godotenv.Load(path) == nil {
+			envLoaded = true
+			break
+		}
+	}
+
+	if !envLoaded {
 		fmt.Println("Error loading .env file")
 		dbAccess = false
 	}
