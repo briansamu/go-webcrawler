@@ -22,8 +22,8 @@ func NewCrawlerStats() *CrawlerStats {
 }
 
 func (stats *CrawlerStats) Update(crawled *queue.CrawledSet, queue *queue.Queue, t time.Time) {
-	stats.pagesPerMinute = fmt.Sprintf("%f %d\n", t.Sub(stats.startTime).Minutes(), crawled.Size())
-	stats.crawledRatioPerMinute = fmt.Sprintf("%f %f\n", t.Sub(stats.startTime).Minutes(), float64(crawled.Size())/float64(queue.Size()))
+	stats.pagesPerMinute = fmt.Sprintf("%f %d\n", time.Since(stats.startTime).Minutes(), crawled.Size())
+	stats.crawledRatioPerMinute = fmt.Sprintf("%f %f\n", time.Since(stats.startTime).Minutes(), float64(crawled.Size())/float64(queue.Size()))
 }
 
 func (stats *CrawlerStats) Print() {
